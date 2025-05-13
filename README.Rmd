@@ -1,0 +1,149 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+
+display_msg <- function(checker) {
+  attr(checker, "msg") |>
+    str_c(collapse = "\n\n") |>
+    cat()
+}
+```
+
+# teal.builder.checks
+
+
+# Overview
+
+**teal.builder.checks** is a package for checking the data integrity of 
+**ADaM** datasets
+
+* [Package website] - (<https://github.com/teal.builder.checks/index.html>)
+
+## Installation
+
+You can install the development version from 
+[Github](https://<github.com>/<teal.builder.checks>) with:
+
+```{r, eval=FALSE, run=FALSE}
+
+# remotes::install_github(
+#  "https://<github.com>/teal.builder.checks",
+#  auth_token = Sys.getenv("GITHUB_PAT"),
+# upgrade = "never"
+# )
+```
+
+# Usage
+
+**teal.builder.checks** checks the following **ADaM** datasets:
+
+| ADaM datasets |ADaM datasets contd. |   
+|:-------------:|:-------------:|
+| adam          | adrs          |
+| adsl          | adqs          |
+| adae          | adlb          |
+| adtte         |               |
+
+**teal.builder.checks** can perform the 
+following data integrity checks by column on those datasets:
+
+| Column Checks | Column Checks contd. | 
+|:--------------|:--------------|
+|existence | is date |
+|is character | is datetime| 
+|is integerish |has values |
+|is double |lacks values |
+|is logical |has one record per subject |
+|is factor |has one record per subject per param |
+
+# Example usage
+
+```{r}
+library(purrr)
+library(dplyr)    
+library(lubridate)
+library(stringr)
+library(checkmate)
+library(vctrs)
+library(random.cdisc.data)
+
+# Load adam datasets for checking
+adsl <- random.cdisc.data::radsl(N = 10, seed = 1, na_percentage = .1)
+adtte <- random.cdisc.data::radtte(adsl, seed = 1, na_percentage = .1)
+```
+## Successful check of adsl
+
+This check returns a logical **TRUE** with an attribute **data** which 
+contains the original ADaM dataset checked
+
+
+```{r}
+library(teal.builder.checks)
+check_adsl(adsl)
+```
+
+## Unsuccessful check of adsl
+
+### check for non-existence of columns
+
+This check returns a logical **FALSE** with two attributes
+
+1) **msg** contains a character vector describing the reason for
+failure, if the check failed
+
+2) **data** which contains the ADaM dataset checked
+
+```{r}
+adsl |>
+  dplyr::select(-STUDYID) |> 
+  check_adsl()
+```
+
+## Creation of your own multichecker
+
+### Successful check of adtte
+
+In the following example, the checks are performed: 
+
+1) the existence of certain columns 
+2) specific values in one column
+3) one record per subject per parameter
+
+```{r}
+my_adtte_checker <- make_multi_checker(
+  check_has_cols(
+    column_names = c("STUDYID", "USUBJID", "PARAMCD")
+  ),
+  check_has_values(
+    column_name = "ARM",
+    values = c("A: Drug X", "B: Placebo", "C: Combination")
+  ),
+  check_has_one_record_per_subject_per_param
+)
+```
+
+```{r}
+my_adtte_checker(adtte) 
+```
+
+## Unsuccessful check of adtte
+
+This check returns a **msg** attribute with multiple error messages.
+
+```{r}
+adtte |>
+  dplyr::slice_head(n = 12) |>
+  dplyr::select(-STUDYID) |>
+  dplyr::filter(ARM != "A: Drug X") |>
+  my_adtte_checker() 
+```
