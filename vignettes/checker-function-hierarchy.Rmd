@@ -1,0 +1,166 @@
+---
+title: "Checker function hierarchy"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Checker function hierarchy}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+**teal.builder.checks** is a package for checking the data integrity of 
+**ADaM** datasets
+
+
+```{r setup}
+library(teal.builder.checks)
+```
+
+# Overview
+
+## Hierarchy of checker functions
+
+**teal.builder.checks** checks the **ADaM** datasets 
+and the functions are designed to be executed in a particular sequence.
+
+The sequence starts with the most general checks 
+i.e. Does the key column exist for a particular dataset?
+
+then proceeds to data type checks such as **is_character** and **is_numeric**
+
+and then finishes with the most specific checks 
+such as **lacks_values**, **has one record per subject** 
+and **has one record per subject per param**.
+
+The execution sequence is as follows:
+
+| Data Integrity Checks Sequence | Comments |
+|:--------------|:--------------|
+|existence | This should be done first to ensure later checks work |  
+|is character | Datatype checks - the data type checks can be done in any order but should be done before the values checks and one record checks | 
+|is integerish | Datatype checks - as above |
+|is double | Datatype checks - as above |
+|is logical | Datatype checks - as above |
+|is factor | Datatype checks - as above | 
+|is date | Datatype checks - as above |
+|is datetime| Datatype checks - as above |
+|has values | values checks - checking for certain values |
+|lacks values | values checks - checking for the absence of certain values | 
+|has one record per subject |one record check |
+|has one record per subject per param | as above |
+
+# Usage
+
+### Hierarchy of functions example
+
+An example of this is the **check_adrs** function:
+
+```{r, eval=FALSE}
+#' ADRS dataset checker
+#'
+ check_adrs <- function(adam) {
+   col_vector <- c("STUDYID", "USUBJID")
+   make_multi_checker(
+     check_has_cols(col_vector),
+     check_is_character("STUDYID"),
+     check_is_character("USUBJID"),
+     check_lacks_values("STUDYID", NA_character_),
+     check_lacks_values("USUBJID", NA_character_),
+     check_has_one_record_per_subject
+ )(adam)
+```
+
+As can be seen from the code, 
+first, it checks for the existence of columns,
+then, it checks for character datatype in two columns,
+then, it checks for **NA_character_** not being in the columns
+and last, it checks that there is one record per subject.
+
+Let's run the code:
+
+First load the data:
+
+```{r}
+library(purrr)
+library(dplyr)    
+library(lubridate)
+library(stringr)
+library(checkmate)
+library(vctrs)
+
+# Load adam datasets for checking
+adrs <- dplyr::tibble(
+      "STUDYID" = c("AB12345", "AB12345", "AB12345"),
+      "USUBJID" = c("AB12345-BRA-1-id-105", 
+                    "AB12345-BRA-1-id-105",
+                    "AB12345-BRA-1-id-134"),
+      "SITEID" = c("BRA-1", "BRA-1", "BRA-1"),
+      "PARAM" = c("Best Confirmed Overall Response by Investigator",
+                  "Investigator End of Induction Response",
+                  "Overall Response by Investigator"), 
+      "PARAMCD" = c("BESRSPI", "INVET", "OVRINV"),
+      "BOR" = c("PR", "SD", "SD"),
+      "BORDSC" = c("Unconfirmed CR", 
+                   "Unconfirmed CR", 
+                   "Unconfirmed PR"
+                   ),
+      "BORUNC" = c("CR", "CR", "PR"),
+      "RESPFL" = c("Y", "N", "N"),
+      "DISCONFL" = c("Y", "Y", "Y"),
+      "CLINBNFL" = c("Y", "Y", "Y"),
+      "LPCHG" = c("Y", "Y", "Y"),
+      "AVISIT" = c("Y", "Y", "Y")
+    )
+
+```
+
+
+```{r}
+library(teal.builder.checks)
+check_adrs(adrs)
+```
+If we change the order of checking, then the error messages are given
+but not in the most appropriate order:
+
+```{r}
+my_adrs_checker <- function(adam) {
+   col_vector <- c("STUDYID", "USUBJID")
+   make_multi_checker(
+     check_has_one_record_per_subject, # move last checker to first 
+     check_is_character("STUDYID"),
+     check_is_character("USUBJID"),
+     check_lacks_values("STUDYID", NA_character_),
+     check_lacks_values("USUBJID", NA_character_),
+     check_has_cols(col_vector) # move first checker to last
+    
+ )(adam)
+}
+```
+
+As can seen in the output of **my_adrs_checker**, the most important message
+is the last message 
+**Dataset must have columns 'STUDYID', 'USUBJID', but is missing 'STUDYID'.** 
+and the others result from that problem.
+
+```{r}
+adrs |> 
+  dplyr::select(-STUDYID) |>
+  my_adrs_checker() 
+```
+
+Whereas, the output of **check_adrs**, the most important message
+is the only message 
+**Dataset must have columns 'STUDYID', 'USUBJID', but is missing 'STUDYID'.** 
+and the user has less output to check.
+
+```{r}
+adrs |> 
+  dplyr::select(-STUDYID) |>
+  check_adrs() 
+```

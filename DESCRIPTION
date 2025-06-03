@@ -1,0 +1,36 @@
+Package: teal.builder.checks
+Title: Data Compatibility Checks for Teal Builder Modules
+Version: 0.3.0
+Authors@R: c(
+    person("Edward", "Gillian", , "edward.gillian-ext@sanofi.com", role = c("aut", "cre")),
+    person("Sanofi", role = c("cph", "fnd"))
+  )
+Description: These functions assess the compatibility of ADaM datasets
+    with particular Teal Builder modules. If a dataset is incompatible,
+    they generate descriptive messages explaining the reasons for the
+    incompatibility.
+License: GPL (>= 2)
+URL: https://github.com/Sanofi-Public/teal.builder.checks
+BugReports: https://github.com/Sanofi-Public/teal.builder.checks/issues
+Depends: 
+    R (>= 4.1.0)
+Imports: 
+    checkmate (>= 2.1.0),
+    dplyr,
+    lubridate,
+    magrittr,
+    purrr (>= 1.0.0),
+    stringr,
+    vctrs
+Suggests: 
+    knitr,
+    random.cdisc.data,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: 
+    knitr
+Config/testthat/edition: 3
+Copyright: Copyright Sanofi 2023
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2

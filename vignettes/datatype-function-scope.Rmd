@@ -1,0 +1,333 @@
+---
+title: "Scope of datatype checker functions"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Scope of datatype checker functions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+**teal.builder.checks** is a package for checking the data integrity of **ADaM** datasets
+
+```{r setup}
+library(teal.builder.checks)
+```
+
+# Overview - column existence check function
+
+
+There is one checker function **check_has_cols** that checks for the existence of column/s.
+
+# Usage - column existence check function
+
+This function has one parameter **column_names** which can accept one column:
+
+```{r}
+ dplyr::tibble(STUDYID = "1") |>
+   check_has_cols(column_names = "STUDYID")()
+```
+
+or a vector of columns
+
+```{r}
+dplyr::tibble(STUDYID = "1", USUBJID = "1") |>
+   check_has_cols(column_names = c("STUDYID", "USUBJID"))()
+```
+
+# Overview - datatype checker functions
+
+The datatype checkers check for particular datatype/s in columns.
+
+The following table lists the datatype checkers and what they check:
+
+| Datatype checker function | Description                             | Comments                                                 |
+|:-----------------------|:-----------------------|:-----------------------|
+| check_is_character        | checks if a column has character values | test done with base R **is.character**                   |
+| check_is_integerish       | checks if a column has integer values   | test done with **checkmate::test_integerish**            |
+| check_is_double           | checks if a column has numeric values   | test done with **vctrs::vec_is**                         |
+| check_is_logical          | checks if a column has logical values   | test done with base R **is.logical**                     |
+| check_is_categorical      | checks if a column has factor values    | test done with base R **is.factor** and **is.character** |
+| check_is_date             | checks if a column has date values      | test done with **lubridate::is.Date**                    |
+| check_is_datetime         | checks if a column has datetime values  | test done with **lubridate::is.POSIXct**                 |
+
+# Usage - datatype checker functions
+
+## **check_is_character**
+
+This function returns **TRUE** when a column has a character datatype:
+
+```{r}
+comments <- "text"
+
+dplyr::tibble(
+   comments
+ ) |> check_is_character("comments")()
+```
+This function returns **FALSE** and a message 
+when a column does not have a character datatype:
+
+```{r}
+comments <- factor(c("male, female"))
+
+dplyr::tibble(
+   comments
+ ) |> check_is_character("comments")()
+```
+
+## **check_is_integerish**
+
+This function returns **TRUE** when a column has an integer datatype:
+
+```{r}
+USUBJID <- as.integer(1.1)
+
+dplyr::tibble(
+   USUBJID
+) |> check_is_integerish("USUBJID")()
+
+```
+
+or a rounded double datatype:
+
+```{r}
+USUBJID <- as.double(1)
+
+dplyr::tibble(
+  USUBJID
+) |> check_is_integerish("USUBJID")()
+```
+
+This function returns **FALSE** and a message 
+when a column does not have an integer or rounded double datatype:
+
+```{r}
+USUBJID <- as.double(1.1)
+
+dplyr::tibble(
+  USUBJID
+) |> check_is_integerish("USUBJID")()
+```
+
+## **check_is_double**
+
+This function returns **TRUE** when a column has a double datatype:
+
+```{r}
+USUBJID <- as.double(1)
+
+dplyr::tibble(
+  USUBJID
+) |> check_is_double("USUBJID")()
+```
+
+This function returns **FALSE** and a message 
+when a column does not have a double datatype:
+
+```{r}
+test_datetime <- as.POSIXct("2020/01/01 22:22:22")
+
+dplyr::tibble(
+  test_datetime
+) |> check_is_double("test_datetime")()
+```
+
+## **check_is_logical**
+
+This function returns **TRUE** when a column has a logical datatype:
+
+```{r}
+status <- TRUE
+
+dplyr::tibble(
+  status
+) |> check_is_logical("status")()
+```
+
+This function returns **FALSE** and a message 
+when a column does not have a logical datatype:
+
+```{r}
+status <- factor(c("male, female"))
+
+dplyr::tibble(
+ status
+) |> check_is_logical("status")()
+```
+
+## **check_is_categorical**
+
+This function returns **TRUE** when a column has a categorical datatype:
+
+```{r}
+sex <- factor(c("male, female"))
+
+dplyr::tibble(
+  sex
+) |> check_is_categorical("sex")()
+```
+
+or a character datatype:
+
+```{r}
+sex <- c("male, female")
+
+dplyr::tibble(
+  sex
+) |> check_is_categorical("sex")()
+
+```
+
+This function returns **FALSE** and a message 
+when a column does not have a categorical datatype:
+
+```{r}
+status <- as.double(1.1)
+
+dplyr::tibble(
+ status
+) |> check_is_categorical("status")()
+```
+
+## **check_is_date**
+
+This function returns **TRUE** when a column has a date datatype:
+
+```{r}
+library(lubridate)
+test_date <- as.Date("2003-02-27")
+
+dplyr::tibble(
+  test_date
+) |> check_is_date("test_date")()
+```
+
+This function returns **FALSE** and a message 
+when a column does not have a date datatype:
+
+```{r}
+test_date <- as.POSIXct("2003-02-27 22:22:22")
+
+dplyr::tibble(
+  test_date
+) |> check_is_date("test_date")()
+```
+
+## **check_is_datetime**
+
+This function returns **TRUE** when a column has a **POSIXct** or **POSIXt** datatype:
+
+```{r}
+library(lubridate)
+test_date <- as.POSIXct("2003-02-27 22:22:22")
+
+dplyr::tibble(
+  test_date
+) |> check_is_datetime("test_date")()
+```
+
+This function returns **FALSE** and a message 
+when a column does not have a **POSIXct** or **POSIXt** datatype:
+
+```{r}
+test_date <- as.Date("2003-02-27")
+
+dplyr::tibble(
+  test_date
+) |> check_is_datetime("test_date")()
+```
+# Overview - values checker functions
+
+There are two functions for checking for the presence 
+or absence of particular values
+
+| Datatype checker function | Description                             | Comments                                                 |
+|:-----------------------|:-----------------------|:-----------------------|
+| check_has_values        | checks if a column has specific values | good for testng for specific values                   |
+| check_lacks_values        | checks if a column does not have specific values | good for testng for the lack of specific values e.g. **NA_character_**                   |
+# Usage - values checker functions
+
+## **check_has_values**
+
+This function returns **TRUE** when a column has a specific value or values:
+
+```{r}
+dplyr::tibble(col_a = factor(letters)) |>
+   check_has_values(column_name = "col_a", values = "a")()
+```   
+
+This function returns **FALSE** and a message 
+when a column does not have a specific value or values:
+
+```{r}
+dplyr::tibble(col_a = factor(letters)) |>
+   check_has_values(column_name = "col_a", values = c(1, 2))()
+```   
+
+## **check_lacks_values**
+
+This function returns **TRUE** when a column does not have a specific value or values:
+
+```{r}
+dplyr::tibble(col_a = 1) |>
+ check_lacks_values(column_name = "col_a", values = NA_character_)()
+```   
+
+This function returns **FALSE** and a message 
+when a column does have a specific value or values:
+
+```{r}
+dplyr::tibble(col_a = NA_character_) |>
+ check_lacks_values(column_name = "col_a", values = NA_character_)()
+```   
+
+# Usage - one record checker functions
+
+## **check_has_one_record_per_subject**
+
+This function returns **TRUE** when a dataset has one record per subject.
+Thsi function is checking **USUBJID** against the records:
+
+```{r}
+dplyr::tibble(USUBJID = c(1, 2, 3), 
+              col_a = c("a", "b", "c")) |>
+    check_has_one_record_per_subject()
+``` 
+
+This function returns **FALSE** and a message 
+when a dataset does not have one record per subject:
+
+```{r}
+dplyr::tibble(USUBJID = c(1, 1), col_a = c("a", "b")) |>
+    check_has_one_record_per_subject()
+```
+
+## **check_has_one_record_per_subject_per_param**
+
+This function returns **TRUE** when a dataset has one record per subject.
+Thsi function is checking **USUBJID** against **PARAMCD** and the records:
+
+```{r}
+dplyr::tibble(
+      STUDYID = c(1, 1, 1),
+      USUBJID = c(1, 2, 3),
+      PARAMCD = c(1, 1, 2)
+    ) |>
+    check_has_one_record_per_subject_per_param()
+``` 
+
+This function returns **FALSE** and a message 
+when a dataset does not have one record per subject per param:
+
+```{r}
+dplyr::tibble(STUDYID = c(1, 1, 1), 
+              USUBJID = c(1, 1, 2), 
+              PARAMCD = c(1, 1, 2)) |>
+    check_has_one_record_per_subject()
+```
